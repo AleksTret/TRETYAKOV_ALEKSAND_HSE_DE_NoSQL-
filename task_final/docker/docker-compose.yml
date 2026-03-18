@@ -1,0 +1,100 @@
+services:
+  # Конфигурационные серверы (3 шт)
+  config1:
+    image: mongo:6.0
+    container_name: mongodb-config1
+    command: mongod --configsvr --replSet configReplSet --port 27017 --bind_ip_all
+    networks:
+      - shard-network
+    volumes:
+      - config1-data:/data/db
+
+  config2:
+    image: mongo:6.0
+    container_name: mongodb-config2
+    command: mongod --configsvr --replSet configReplSet --port 27017 --bind_ip_all
+    networks:
+      - shard-network
+    volumes:
+      - config2-data:/data/db
+
+  config3:
+    image: mongo:6.0
+    container_name: mongodb-config3
+    command: mongod --configsvr --replSet configReplSet --port 27017 --bind_ip_all
+    networks:
+      - shard-network
+    volumes:
+      - config3-data:/data/db
+
+  # Шард 1 (как репликасет с одним членом)
+  shard1:
+    image: mongo:6.0
+    container_name: mongodb-shard1
+    command: mongod --shardsvr --replSet shard1ReplSet --port 27018 --bind_ip_all
+    networks:
+      - shard-network
+    volumes:
+      - shard1-data:/data/db
+
+  # Шард 2
+  shard2:
+    image: mongo:6.0
+    container_name: mongodb-shard2
+    command: mongod --shardsvr --replSet shard2ReplSet --port 27019 --bind_ip_all
+    networks:
+      - shard-network
+    volumes:
+      - shard2-data:/data/db
+
+  # Шард 3
+  shard3:
+    image: mongo:6.0
+    container_name: mongodb-shard3
+    command: mongod --shardsvr --replSet shard3ReplSet --port 27020 --bind_ip_all
+    networks:
+      - shard-network
+    volumes:
+      - shard3-data:/data/db
+
+  # Маршрутизатор (точка входа)
+  mongos:
+    image: mongo:6.0
+    container_name: mongodb-mongos
+    command: mongos --configdb configReplSet/config1:27017,config2:27017,config3:27017 --port 27021 --bind_ip_all
+    ports:
+      - "27017:27021"  # наружу торчит mongos
+    networks:
+      - shard-network
+    depends_on:
+      - config1
+      - config2
+      - config3
+      - shard1
+      - shard2
+      - shard3
+
+  # Отдельный MongoDB без шардинга (для сравнения)
+  standalone:
+    image: mongo:6.0
+    container_name: mongodb-standalone
+    command: mongod --port 27022 --bind_ip_all
+    ports:
+      - "27018:27022"
+    networks:
+      - shard-network
+    volumes:
+      - standalone-data:/data/db
+
+networks:
+  shard-network:
+    driver: bridge
+
+volumes:
+  config1-data:
+  config2-data:
+  config3-data:
+  shard1-data:
+  shard2-data:
+  shard3-data:
+  standalone-data:

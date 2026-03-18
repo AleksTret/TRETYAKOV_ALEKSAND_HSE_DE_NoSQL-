@@ -1,0 +1,5 @@
+pymongo
+faker
+tqdmv
+matplotlib 
+numpy 
